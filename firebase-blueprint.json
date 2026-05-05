@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "Match": {
+      "title": "Match",
+      "description": "Represents a live or upcoming sports match.",
+      "type": "object",
+      "properties": {
+        "team_a": { "type": "string", "description": "Home team name" },
+        "team_b": { "type": "string", "description": "Away team name" },
+        "team_a_rank": { "type": "string", "description": "Team A Rank (e.g., A, B, C)" },
+        "team_b_rank": { "type": "string", "description": "Team B Rank (e.g., A, B, C)" },
+        "team_a_last_5": { "type": "array", "items": { "type": "string" }, "description": "Last 5 match results for Team A (e.g., ['W', 'L', 'W'])" },
+        "team_b_last_5": { "type": "array", "items": { "type": "string" }, "description": "Last 5 match results for Team B (e.g., ['W', 'L', 'W'])" },
+        "venue": { "type": "string", "description": "Match venue" },
+        "pitch_report": { "type": "string", "description": "Pitch condition (e.g., Spin friendly)" },
+        "score_a": { "type": "string", "description": "Team A score" },
+        "score_b": { "type": "string", "description": "Team B score" },
+        "overs_a": { "type": "string", "description": "Team A overs" },
+        "overs_b": { "type": "string", "description": "Team B overs" },
+        "time": { "type": "string", "description": "Match time or status" },
+        "status": { "type": "string", "enum": ["In Play", "Completed", "Upcoming"] }
+      },
+      "required": ["team_a", "team_b", "status"]
+    },
+    "PlayerRanking": {
+      "title": "PlayerRanking",
+      "description": "Represents a player's power ranking.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "rating": { "type": "number", "description": "Power rating (0-100)" },
+        "team": { "type": "string" }
+      },
+      "required": ["name", "role", "rating"]
+    },
+    "Prediction": {
+      "title": "Prediction",
+      "description": "An AI-generated match prediction.",
+      "type": "object",
+      "properties": {
+        "teamA": { "type": "string" },
+        "teamB": { "type": "string" },
+        "sportType": { "type": "string" },
+        "winProbability": { "type": "number" },
+        "predictionText": { "type": "string" },
+        "strongPillars": { "type": "array", "items": { "type": "string" } },
+        "weakPillars": { "type": "array", "items": { "type": "string" } },
+        "authorUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "riskLevel": { "type": "string", "enum": ["Low", "Medium", "High"] },
+        "strongerTeam": { "type": "string" },
+        "fullAnalysis": { "type": "object", "description": "The complete analysis result object." }
+      },
+      "required": ["teamA", "teamB", "winProbability", "predictionText", "authorUid", "createdAt", "riskLevel"]
+    }
+  },
+  "firestore": {
+    "/matches/{matchId}": {
+      "schema": "Match",
+      "description": "Collection of live and upcoming matches."
+    },
+    "/rankings/{rankingId}": {
+      "schema": "PlayerRanking",
+      "description": "Collection of player power rankings."
+    },
+    "/predictions/{predictionId}": {
+      "schema": "Prediction",
+      "description": "Collection of AI-generated predictions."
+    }
+  }
+}

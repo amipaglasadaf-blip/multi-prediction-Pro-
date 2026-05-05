@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: matches
+    // Fields: team1 (string), team2 (string), score1 (number), score2 (number), time (string), status (string), date (string)
+    //
+    // Collection: rankings
+    // Fields: name (string), role (string), rating (number), team (string)
+    //
+    // Collection: predictions
+    // Fields: teamA (string), teamB (string), winProbability (number), predictionText (string), strongPillars (list), weakPillars (list), authorUid (string), createdAt (timestamp)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || 
+         (request.auth.token.email == "shomratahmed0000@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.authorUid;
+    }
+
+    function isValidMatch(data) {
+      return data.team1 is string && data.team1.size() > 0 && data.team1.size() < 100 &&
+             data.team2 is string && data.team2.size() > 0 && data.team2.size() < 100 &&
+             data.status in ['In Play', 'Completed', 'Half Time', 'Scheduled', 'Live', 'Upcoming', 'Finished'];
+    }
+
+    function isValidRanking(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.role is string && data.role.size() > 0 && data.role.size() < 100 &&
+             data.rating is number && data.rating >= 0 && data.rating <= 100;
+    }
+
+    function isValidPrediction(data) {
+      return data.teamA is string && data.teamA.size() > 0 && data.teamA.size() < 100 &&
+             data.teamB is string && data.teamB.size() > 0 && data.teamB.size() < 100 &&
+             data.winProbability is number && data.winProbability >= 0 && data.winProbability <= 100 &&
+             data.predictionText is string && data.predictionText.size() > 0 && data.predictionText.size() < 10000 &&
+             data.strongPillars is list && data.strongPillars.size() <= 20 &&
+             data.weakPillars is list && data.weakPillars.size() <= 20 &&
+             data.authorUid is string &&
+             data.createdAt is timestamp &&
+             data.riskLevel in ['Low', 'Medium', 'High'] &&
+             (!('strongerTeam' in data) || data.strongerTeam is string) &&
+             (!('fullAnalysis' in data) || data.fullAnalysis is map);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // Matches: Publicly readable, only admins can write
+    match /matches/{matchId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() && isValidMatch(request.resource.data);
+    }
+
+    // Rankings: Publicly readable, only admins can write
+    match /rankings/{rankingId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin() && isValidRanking(request.resource.data);
+    }
+
+    // Predictions: Publicly readable, authenticated users can create, owners can update/delete
+    match /predictions/{predictionId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidPrediction(request.resource.data) && request.resource.data.authorUid == request.auth.uid;
+      allow update, delete: if isDocOwner() && isValidPrediction(request.resource.data) && request.resource.data.authorUid == resource.data.authorUid;
+    }
+
+    // Users: Owners can read/write their own data
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+  }
+}
